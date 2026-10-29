@@ -44,8 +44,6 @@ async function apiFetchText(path: string) {
 }
 
 export const api = {
-  slackConnection: () => apiFetch('/admin/api/connections/slack'),
-  slackCheck: (sourceId:string) => apiFetch('/admin/api/connections/slack/check', {method:'POST',body:JSON.stringify({source_id:sourceId})}),
   oauthRequest: (id: string) => apiFetch(`/admin/api/oauth-requests/${encodeURIComponent(id)}`),
   decideOAuthRequest: (id: string, decision: 'approve' | 'deny', csrf: string, sourceId?: string) =>
     apiFetch(`/admin/api/oauth-requests/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(sourceId === undefined ? { decision, csrf } : { decision, csrf, source_id: sourceId }) }),

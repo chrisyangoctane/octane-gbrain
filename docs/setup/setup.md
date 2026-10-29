@@ -686,31 +686,37 @@ token is the value to paste. Restarting the server replaces it.
 
 ### Slack via MCP
 
-The Slack connector reads the enabled remote `slack` server in your Kilo
-configuration. Complete authentication there first. Credentials are read at
-runtime, never copied into the source config or displayed in the admin panel.
+The Slack connector reads an enabled remote Slack server from an MCP client
+configuration file that you name with `--mcp-config`. Complete authentication there first. Credentials are read at
+runtime and never copied into the source config.
 
 ```bash
 bun src/cli.ts sources add slack --kind slack \
   --channels C12345678,C23456789 \
-  --mcp-config ~/.config/kilo/kilo.jsonc --mcp-server slack
+  --mcp-config /path/to/mcp-client-config.json --mcp-server slack
 bun src/cli.ts sync --source slack --no-embed
 ```
 
-Channel archive URLs are also accepted. **Connections > Slack > Verify MCP**
-checks authentication and tool availability without downloading Slack messages.
-This is not a new OAuth client: provider authorization stays with the configured
+Channel archive URLs are also accepted. Provider authorization stays with the configured
 MCP server. This initial implementation supports Streamable HTTP and configured
 request headers; it does not reuse a harness's separate OAuth token store.
 
-Requests are sequential and paced at least 65 seconds apart. Failed requests stop
+The configuration accepts a named server under either `mcpServers` or `mcp`.
+Supply a Streamable HTTP `url` and optional `headers`; no particular AI client,
+personal path, workspace or endpoint is assumed. For example:
+
+```json
+{"mcpServers":{"slack":{"url":"https://mcp.example.com/slack","headers":{"Authorization":"Bearer {env:SLACK_MCP_TOKEN}"}}}}
+```
+
+Requests are sequential and paced at least 1.5 seconds apart. Failed requests stop
 that channel without immediate retry. Managed sources checkpoint each imported
 page and resume unfinished pagination. A completed channel is re-read next run.
 
-The current MCP renders history as text without exact message timestamps or
-permalinks. Thread replies cannot be retrieved reliably: snapshots explicitly
-record `coverage: history-only`, and sync reports partial if reply-bearing threads
-exist. No exact IDs are inferred from display times or cursor internals.
+The server must expose structured history and replies with exact `ts`,
+`thread_ts`, reply counts and pagination cursors. The connector fetches thread
+replies using those exact identifiers; text-only servers cannot provide complete
+ingestion. No exact IDs are inferred from display times or cursor internals.
 MCP evidence lives under `slack-mcp/`; existing richer per-day Slack imports are
 retained unchanged. Old MCP page tails are retained rather than automatically
 deleted when pagination shrinks. No attachment downloads are performed.

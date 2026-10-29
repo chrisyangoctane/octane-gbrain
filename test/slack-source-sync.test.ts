@@ -5,8 +5,9 @@ import {parseSourceLifecycleArgs} from '../src/commands/sources-lifecycle-args.t
 test('Slack source resolves URLs and references MCP configuration, never credentials',()=>{
  expect(slackChannelId('https://example.slack.com/archives/C12345678')).toBe('C12345678');
  expect(()=>slackChannelId('../secret')).toThrow();
- expect(parseSlackSourceConfig({slack_channels:'C12345678'},'/tmp/slack').mcpServer).toBe('slack');
- const p=parseSourceLifecycleArgs(['add','slack','--kind','slack','--channels','C12345678','--mcp-server','slack']);
+ expect(()=>parseSlackSourceConfig({slack_channels:'C12345678'},'/tmp/slack')).toThrow(/--mcp-config/);
+ expect(parseSlackSourceConfig({slack_channels:'C12345678',slack_mcp_config:'/tmp/mcp.json'},'/tmp/slack').mcpServer).toBe('slack');
+ const p=parseSourceLifecycleArgs(['add','slack','--kind','slack','--channels','C12345678','--mcp-config','/tmp/mcp.json','--mcp-server','slack']);
  expect(JSON.stringify(p)).toContain('mcpServer');expect(JSON.stringify(p)).not.toContain('slackdump');
 });
 test('history metadata is parsed without inventing exact timestamps',()=>{

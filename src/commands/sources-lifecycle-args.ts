@@ -113,6 +113,7 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
   for (const key of ['channels', 'mcp-config', 'mcp-server']) {
     if(values.has(key) && kind !== 'slack') throw invalid(`--${key} requires --kind slack.`, 'Use --kind slack or remove the Slack-specific flag.');
   }
+  if (kind === 'slack' && !values.has('mcp-config')) throw invalid('--kind slack requires --mcp-config <path>.', 'Point --mcp-config at the MCP client configuration that defines your Slack server, for example: --mcp-config ./mcp.json --mcp-server slack.');
   for (const key of kindOptions) if (values.has(key) && !kind) throw invalid(`--${key} requires --kind github or google.`,
     `Add ${googleOnly.includes(key) ? '--kind google' : githubOnly.includes(key) ? '--kind github' : '--kind github or --kind google'} for --${key}, or remove --${key}.`);
   for (const key of googleOnly) {

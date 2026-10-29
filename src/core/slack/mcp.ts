@@ -20,8 +20,9 @@ export function readSlackMcpConfig(cfg:Pick<SlackSourceConfig,'mcpConfig'|'mcpSe
   try {
     const errors:ParseError[]=[];
     const root=parse(readFileSync(cfg.mcpConfig,'utf8'),errors);
-    const server=root?.mcp?.[cfg.mcpServer];
-    if(errors.length||server?.type!=='remote'||server.enabled===false)throw new Error();
+    const server=root?.mcpServers?.[cfg.mcpServer]??root?.mcp?.[cfg.mcpServer];
+    if(errors.length||!server||server.enabled===false||server.command||
+      server.type!==undefined&&!['remote','http','streamable-http'].includes(server.type))throw new Error();
     const url=new URL(server.url);
     if(url.username||url.password||url.search||url.hash||!(url.protocol==='https:'||url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)))throw new Error();
     const headers:Record<string,string>={};

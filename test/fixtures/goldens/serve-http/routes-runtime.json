@@ -398,22 +398,6 @@
             "requireAdmin#4",
             "<anonymous>"
           ],
-          "method": "get",
-          "path": "/admin/api/connections/slack"
-        },
-        {
-          "handlers": [
-            "requireAdmin#4",
-            "<anonymous>"
-          ],
-          "method": "post",
-          "path": "/admin/api/connections/slack/check"
-        },
-        {
-          "handlers": [
-            "requireAdmin#4",
-            "<anonymous>"
-          ],
           "method": "post",
           "path": "/admin/api/sign-out-everywhere"
         },
@@ -1132,22 +1116,6 @@
           ],
           "method": "get",
           "path": "/metrics"
-        },
-        {
-          "handlers": [
-            "requireAdmin#4",
-            "<anonymous>"
-          ],
-          "method": "get",
-          "path": "/admin/api/connections/slack"
-        },
-        {
-          "handlers": [
-            "requireAdmin#4",
-            "<anonymous>"
-          ],
-          "method": "post",
-          "path": "/admin/api/connections/slack/check"
         },
         {
           "handlers": [

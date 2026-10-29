@@ -19,7 +19,6 @@ import { mountAdminRegistration } from './serve-http-registration.ts';
 import { parseAdminGrantRequest, grantHttpStatus, GRANT_TOKEN_IMPLICATIONS, mountAdminGrantDiscovery, mountAdminGrantEdits } from './serve-http-grants.ts';
 import { probeHealth } from './serve-http-metrics.ts';
 import type { ServeHttpContext } from './serve-http.ts';
-import { mountAdminSlack } from './serve-http-slack.ts';
 
 /** Narrowest contract the handshake consumes. */
 type AdminSseResponse = {
@@ -217,7 +216,6 @@ export function mountAdminLogin(app: Express, ctx: ServeHttpContext): void {
 
 /** The /admin/api/* dashboard endpoints and the /admin/events SSE feed, in registration order. */
 export function mountAdminApi(app: Express, ctx: ServeHttpContext): void {
-  mountAdminSlack(app, ctx);
   const { requireAdmin, sseClients } = ctx;
   mountAdminOverviewApi(app, ctx);
   mountAdminCalibrationApi(app, ctx);

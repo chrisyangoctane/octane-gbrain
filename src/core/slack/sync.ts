@@ -10,7 +10,9 @@ import type {SlackSourceConfig} from './source-config.ts';
 
 interface ChannelCheckpoint {cursor?:string;pages:number;messages:number;threads:number;complete:boolean;replyPages:number;replies?:number;repliesDone?:string[]}
 interface SlackCheckpoint {lastCall:number;channels:Record<string,ChannelCheckpoint>}
-export const SLACK_MCP_INTERVAL_MS=65000;
+// Slack Tier 3 (conversations.history/replies) allows about 50 calls/minute.
+// 1.5s spacing is about 40/minute, below that limit. Rate-limit responses still stop the channel.
+export const SLACK_MCP_INTERVAL_MS=1500;
 export interface SlackSyncDependencies {
   connect?:typeof connectSlackMcp;
   sleep?:(ms:number,signal?:AbortSignal)=>Promise<void>;
