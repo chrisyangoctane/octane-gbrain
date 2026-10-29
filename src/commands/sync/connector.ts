@@ -19,7 +19,7 @@ export async function runConnectorSync(engine: BrainEngine, opts: SyncOpts, mana
     return null;
   }
   const config = typeof source.config === 'string' ? JSON.parse(source.config) : source.config ?? {};
-  if (config.kind !== 'google' && config.kind !== 'github') {
+  if (config.kind !== 'google' && config.kind !== 'github' && config.kind !== 'slack') {
     if (opts.githubItem) throw new Error(`github_item refresh requires a github-kind source, but "${sourceId}" is not github-kind.`);
     return null;
   }
@@ -31,7 +31,11 @@ export async function runConnectorSync(engine: BrainEngine, opts: SyncOpts, mana
   const fallbackDir = source.local_path ?? (managed ? '' : (await import('../../core/sources-ops.ts')).defaultCloneDir(`${sourceId}-${config.kind}`));
   serr(`[gbrain phase] sync.${config.kind}_materialize`);
   let result: SyncResult;
-  if (config.kind === 'github') {
+  if (config.kind === 'slack') {
+    const { runSlackSync } = await import('../../core/slack/sync.ts');
+    const { parseSlackSourceConfig } = await import('../../core/slack/source-config.ts');
+    result = await runSlackSync(engine, sourceId, parseSlackSourceConfig(config, fallbackDir), options);
+  } else if (config.kind === 'github') {
     const { parseGitHubSourceConfig, runGitHubSync } = await import('../../core/github-source.ts');
     result = await runGitHubSync(engine, sourceId, parseGitHubSourceConfig(config, fallbackDir), options);
   } else {

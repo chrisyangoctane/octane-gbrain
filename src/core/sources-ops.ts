@@ -148,6 +148,7 @@ export interface SourceStatus {
 }
 
 export interface AddSourceOpts {
+  slack?: import('./slack/source-config.ts').SlackSourceConfig;
   id: string;
   name?: string;
   requestId?: string;
@@ -584,6 +585,10 @@ export async function addSource(
         e,
       );
     }
+  } else if (opts.slack) {
+    const input=(await import('./persistence/managed-sources.ts')).managedSourceAddInput(opts);
+    mkdirSync(input.path!,{recursive:true,mode:0o700});
+    await engine.executeRaw(`INSERT INTO sources (id,name,local_path,config) VALUES ($1,$2,$3,$4::text::jsonb)`,[opts.id,opts.name??opts.id,input.path,JSON.stringify(input.config)]);
   } else if (opts.github) {
     // ── Path C: --kind github (v0.46) ─────────────────────────────────────
     // API-backed source: no git repo, no clone. The managed dir is created
