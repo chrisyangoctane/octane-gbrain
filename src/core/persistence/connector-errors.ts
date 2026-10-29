@@ -30,6 +30,9 @@ export function connectorAccountChanged(sourceId: string, kind: ConnectorKind, c
     restore = `restore ${where} so it yields a token for ${show(recorded)}, then retry: gbrain sync --source ${sourceId}`;
     replace = `add a new source for the new account (gbrain google setup --account ${typeof resolved === 'object' && resolved?.kind === 'google' ? resolved.email : '<email>'}), `
       + `then archive this one: gbrain sources archive ${sourceId}`;
+  } else if (kind === 'confluence') {
+    restore = 'restore the Confluence MCP connection and space selection for this source';
+    replace = 'register a new --kind confluence source for the intended space';
   } else if (kind === 'google-mcp') {
     restore = 'restore the declared mailbox and MCP endpoint for this source';
     replace = 'register a new --kind google-mcp source for the intended mailbox';

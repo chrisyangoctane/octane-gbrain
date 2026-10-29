@@ -10,9 +10,11 @@ brain so it can be searched, linked and embedded with other sources.
 | `slack` | Selected Slack channels: history and thread replies | [slack-mcp.md](slack-mcp.md) |
 | `jira` | Jira issues selected by JQL, with descriptions and comments | [jira-mcp.md](jira-mcp.md) |
 | `google-mcp` | Gmail messages selected by query, and Calendar event summaries | [google-mcp.md](google-mcp.md) |
+| `confluence` | Pages in one Confluence space, optionally narrowed by a text query | [confluence-mcp.md](confluence-mcp.md) |
 
 Each connector is a separate source kind with its own command-line options
-and its own stored configuration. Jira and Confluence are separate connectors.
+and its own stored configuration. Jira and Confluence are separate connectors,
+even though both are Atlassian products.
 gbrain's built-in `google` and `github` kinds are not part of this set and
 are unchanged.
 

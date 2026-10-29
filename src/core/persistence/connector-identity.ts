@@ -23,18 +23,19 @@
 import { digest } from './digest.ts';
 import {parseGoogleMcpSourceConfig,type GoogleMcpSourceConfig} from '../google-mcp/source-config.ts';
 import {parseJiraSourceConfig,type JiraSourceConfig} from '../jira/source-config.ts';
+import {parseConfluenceSourceConfig,type ConfluenceSourceConfig} from '../confluence/source-config.ts';
 import { parseSlackSourceConfig, type SlackSourceConfig } from '../slack/source-config.ts';
 import { parseGoogleSourceConfig } from '../google/source-config.ts';
 import { parseGitHubSourceConfig } from '../github-source-config.ts';
 import type { GitHubSourceConfig } from '../github-source.ts';
 import { DEFAULT_CONTACTS_DIR, type GoogleSourceConfig } from '../google/types.ts';
 
-export type ConnectorKind = 'google' | 'github' | 'slack' | 'jira' | 'google-mcp';
+export type ConnectorKind = 'google' | 'github' | 'slack' | 'jira' | 'google-mcp' | 'confluence';
 
-export const CONNECTOR_SOURCE_KINDS: readonly ConnectorKind[] = ['google', 'github', 'slack', 'jira','google-mcp'];
+export const CONNECTOR_SOURCE_KINDS: readonly ConnectorKind[] = ['google', 'github', 'slack', 'jira','google-mcp','confluence'];
 /** A managed Google or GitHub connector source (`sources.config.kind`). */
 export function isConnectorSourceKind(kind: unknown): kind is ConnectorKind { return CONNECTOR_SOURCE_KINDS.includes(kind as ConnectorKind); }
-export type ConnectorConfig = GoogleSourceConfig | GitHubSourceConfig | SlackSourceConfig | JiraSourceConfig | GoogleMcpSourceConfig;
+export type ConnectorConfig = GoogleSourceConfig | GitHubSourceConfig | SlackSourceConfig | JiraSourceConfig | GoogleMcpSourceConfig | ConfluenceSourceConfig;
 type LeafClass = 'identity' | 'excluded';
 /** An identity leaf left out of the digest while it holds the default it was introduced with (#6561). */
 interface ElidedLeaf { elideWhen: unknown }
@@ -47,7 +48,8 @@ const underAuto = (config: GitHubSourceConfig): LeafClass => config.scope === 'a
  * output and fails on a leaf missing here; an unlisted leaf still joins the
  * identity at runtime, never the exclusion list.
  */
-export const CONNECTOR_LEAF_RULES: { google: Record<string, LeafClass | ElidedLeaf>; github: Record<string, Rule>; slack: Record<string, Rule>;jira:Record<string,Rule>;'google-mcp':Record<string,Rule> } = {
+export const CONNECTOR_LEAF_RULES: { google: Record<string, LeafClass | ElidedLeaf>; github: Record<string, Rule>; slack: Record<string, Rule>;jira:Record<string,Rule>;'google-mcp':Record<string,Rule>;confluence:Record<string,Rule> } = {
+  confluence:{dir:'identity',space:'identity',query:'identity',mcpConfig:'identity',mcpServer:'identity'},
   'google-mcp':{dir:'identity',query:'identity',account:'identity',mcpConfig:'identity',mcpServer:'identity',calendarId:'identity',timeMin:'identity',timeMax:'identity'},
   jira:{dir:'identity',jql:'identity',project:'identity',mcpConfig:'identity',mcpServer:'identity'},
   slack: {dir:'identity',channels:'identity',mcpConfig:'identity',mcpServer:'identity'},
@@ -108,6 +110,7 @@ export interface ConnectorIdentity { kind: ConnectorKind; config: ConnectorConfi
 export function parseConnectorConfig(kind: ConnectorKind, raw: Record<string, unknown>, localPath: string | null): ConnectorConfig {
   if(kind==='google-mcp')return parseGoogleMcpSourceConfig(raw,localPath??'');
   if(kind==='jira')return parseJiraSourceConfig(raw,localPath??'');
+  if(kind==='confluence')return parseConfluenceSourceConfig(raw,localPath??'');
   if(kind === 'slack') return parseSlackSourceConfig(raw, localPath ?? '');
   return kind === 'google' ? parseGoogleSourceConfig(raw, localPath ?? '') : parseGitHubSourceConfig(raw, localPath ?? '');
 }

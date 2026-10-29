@@ -114,7 +114,7 @@ async function mayBeConnectorSource(engine: BrainEngine, opts: SyncOpts): Promis
   if (routing.id === null) return false;
   try {
     const config = typeof routing.config === 'string' ? JSON.parse(routing.config) : routing.config ?? {};
-    return config.kind === 'google' || config.kind === 'github' || config.kind === 'slack' || config.kind==='jira' || config.kind==='google-mcp';
+    return config.kind === 'google' || config.kind === 'github' || config.kind === 'slack' || config.kind==='jira' || config.kind==='google-mcp' || config.kind==='confluence';
   } catch { return true; }
 }
 
