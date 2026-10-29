@@ -193,7 +193,7 @@ function connectorBindingRoot(sourceId: string, source: ConnectorSource, binding
   assertPhysicalRoot(localPath, { worktreeId: binding.worktree_id, coordinationPath });
   try {
     const root = realpathSync(join(localPath, binding.relative_path));
-    const configured = source.config[source.config.kind==='jira'?'jira_dir':source.config.kind === 'slack' ? 'slack_dir' : source.config.kind === 'google' ? 'g_dir' : 'gh_dir'];
+    const configured = source.config[source.config.kind==='google-mcp'?'gm_dir':source.config.kind==='jira'?'jira_dir':source.config.kind === 'slack' ? 'slack_dir' : source.config.kind === 'google' ? 'g_dir' : 'gh_dir'];
     const directory = typeof configured === 'string' && configured.length > 0 ? configured : sourcePath;
     if (!containsPath(localPath, root) || !statSync(root).isDirectory() || realpathSync(sourcePath) !== root || realpathSync(directory) !== root) {
       throw new Error('root mismatch');

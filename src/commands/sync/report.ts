@@ -159,6 +159,10 @@ export function printSyncResult(result: SyncResult, sink: NodeJS.WriteStream = p
         break;
       }
       if (result.reason === 'connector_partial') {
+        if(result.toCommit==='google-mcp'){
+          write(`Sync PARTIAL [connector_partial]: Google MCP truncated one or more message bodies; stored pages are marked body_truncated. ${result.added+result.modified} page(s) written.`);
+          break;
+        }
         if(result.toCommit==='slack-mcp') {
           write(`Sync PARTIAL [connector_partial]: Slack MCP history pagination completed; thread replies were not imported because exact parent timestamps are unavailable. ${result.added+result.modified} page(s) written.`);
           write('  Retrying cannot restore missing MCP metadata. Existing legacy Slack pages remain intact.');
