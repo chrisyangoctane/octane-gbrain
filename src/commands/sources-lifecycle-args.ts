@@ -1,5 +1,6 @@
 /** Parse trusted source administration before connecting to the selected datastore. */
 import { randomUUID } from 'node:crypto';
+import {parseGoogleMcpSourceConfig} from '../core/google-mcp/source-config.ts';
 import {parseJiraSourceConfig} from '../core/jira/source-config.ts';
 import { parseSlackSourceConfig } from '../core/slack/source-config.ts';
 import { resolve } from 'node:path';
@@ -43,7 +44,7 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
     'federated', 'no-federated', 'no-federate', 'refederate', 'no-harden']);
   const valued = new Set(['request-id', 'expected-incarnation', 'brain', 'path', 'url', 'name', 'clone-dir',
     'pat-file', 'kind', 'account', 'access', 'token-command', 'token-env', 'services', 'history-days',
-    'future-days', 'loops-exclude-labels', 'contacts-dir', 'calendar-id', 'scope', 'repos', 'dir', 'app-id', 'app-pem', 'app-install', 'channels', 'mcp-config', 'mcp-server','jql','project']);
+    'future-days', 'loops-exclude-labels', 'contacts-dir', 'calendar-id', 'scope', 'repos', 'dir', 'app-id', 'app-pem', 'app-install', 'channels', 'mcp-config', 'mcp-server','jql','project','gmail-query','time-min','time-max']);
   for (let i = 0; i < rest.length; i++) {
     const token = rest[i];
     if (!token.startsWith('-')) { positionals.push(token); continue; }
@@ -104,7 +105,7 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
 
   if (flags.has('federated') && flags.has('no-federated')) throw invalid('Choose one federation setting.', 'Pass either --federated or --no-federated, not both.');
   const kind = values.get('kind');
-  if (kind !== undefined && !['google', 'github', 'slack','jira'].includes(kind)) throw invalid('Source kind must be github, google, slack or jira.',
+  if (kind !== undefined && !['google', 'github', 'slack','jira','google-mcp'].includes(kind)) throw invalid('Source kind must be github, google, slack, jira or google-mcp.',
     'Pass --kind github or --kind google; a directory or Git remote source uses --path or --url instead of --kind.');
   if ([values.has('path'), values.has('url'), kind !== undefined].filter(Boolean).length > 1) throw invalid('--path, --url and --kind are mutually exclusive.',
     'Give exactly one of --path (a local directory), --url (an https Git remote) or --kind (github or google).');
@@ -115,12 +116,14 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
     if(values.has(key) && kind !== 'slack') throw invalid(`--${key} requires --kind slack.`, 'Use --kind slack or remove the Slack-specific flag.');
   }
   if (kind === 'slack' && !values.has('mcp-config')) throw invalid('--kind slack requires --mcp-config <path>.', 'Point --mcp-config at the MCP client configuration that defines your Slack server, for example: --mcp-config ./mcp.json --mcp-server slack.');
-  for(const key of ['mcp-config','mcp-server'])if(values.has(key)&&!['slack','jira'].includes(kind??''))throw invalid(`--${key} requires an MCP connector kind.`, 'Use --kind jira or --kind slack.');
+  for(const key of ['mcp-config','mcp-server'])if(values.has(key)&&!['slack','jira','google-mcp'].includes(kind??''))throw invalid(`--${key} requires an MCP connector kind.`, 'Use --kind jira, slack or google-mcp.');
+  if(values.has('gmail-query')&&kind!=='google-mcp')throw invalid('--gmail-query requires --kind google-mcp.','Use the separate Google MCP connector.');
+  for(const key of ['time-min','time-max'])if(values.has(key)&&kind!=='google-mcp')throw invalid(`--${key} requires --kind google-mcp.`,'Use the separate Google MCP connector.');
   for(const key of ['jql','project'])if(values.has(key)&&kind!=='jira')throw invalid(`--${key} requires --kind jira.`, 'Use --kind jira.');
   for (const key of kindOptions) if (values.has(key) && !kind) throw invalid(`--${key} requires --kind github or google.`,
     `Add ${googleOnly.includes(key) ? '--kind google' : githubOnly.includes(key) ? '--kind github' : '--kind github or --kind google'} for --${key}, or remove --${key}.`);
   for (const key of googleOnly) {
-    if (values.has(key) && kind !== 'google') throw invalid(`--${key} requires --kind google.`, `--${key} configures a Google source: use --kind google, or remove --${key} from this ${kind} source.`);
+    if (values.has(key) && kind !== 'google' && !(['account','calendar-id'].includes(key)&&kind==='google-mcp')) throw invalid(`--${key} requires --kind google.`, `--${key} configures a Google source: use --kind google, or remove --${key} from this ${kind} source.`);
   }
   for (const key of githubOnly) {
     if (values.has(key) && kind !== 'github') throw invalid(`--${key} requires --kind github.`, `--${key} configures a GitHub source: use --kind github, or remove --${key} from this ${kind} source.`);
@@ -140,6 +143,7 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
     opts.slack = parseSlackSourceConfig({slack_channels:values.get('channels'),slack_mcp_config:values.get('mcp-config'),slack_mcp_server:values.get('mcp-server'),slack_dir:values.has('dir')?absolute(values.get('dir')!):undefined}, defaultCloneDir(`${id}-slack`));
   }
   if(kind==='jira')opts.jira=parseJiraSourceConfig({jira_jql:values.get('jql'),jira_project:values.get('project'),jira_mcp_config:values.get('mcp-config'),jira_mcp_server:values.get('mcp-server'),jira_dir:values.has('dir')?absolute(values.get('dir')!):undefined},defaultCloneDir(`${id}-jira`));
+  if(kind==='google-mcp')opts.googleMcp=parseGoogleMcpSourceConfig({gm_query:values.get('gmail-query'),gm_account:values.get('account'),gm_calendar_id:values.get('calendar-id'),gm_time_min:values.get('time-min'),gm_time_max:values.get('time-max'),gm_mcp_config:values.get('mcp-config'),gm_mcp_server:values.get('mcp-server'),gm_dir:values.has('dir')?absolute(values.get('dir')!):undefined},defaultCloneDir(`${id}-google-mcp`));
   if (kind === 'github') {
     const scope = values.get('scope') ?? 'auto';
     const repos = (values.get('repos') ?? '').split(',').map(value => value.trim()).filter(Boolean);

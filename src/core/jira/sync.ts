@@ -9,6 +9,9 @@ import {connectJiraMcp,jiraText,parseJiraSearch,validateJiraIssue,parseJiraComme
 import type {JiraSourceConfig} from './source-config.ts';
 import type {McpSourceConnection} from '../mcp-source.ts';
 
+// Sequential calls spaced 1s apart; per-issue failures are logged and retried.
+export const JIRA_MCP_INTERVAL_MS=1000;
+
 interface JiraCheckpoint {
   site?:string;token?:string;queue:string[];index:number;seenTokens:string[];
   failedKeys:string[];complete:boolean;
@@ -41,7 +44,7 @@ export async function runJiraSync(engine:BrainEngine,sourceId:string,cfg:JiraSou
       const now=deps.now??Date.now;
       const call=async(name:string,args:Record<string,unknown>)=>{
         options.signal?.throwIfAborted();
-        await(deps.sleep??pause)(Math.max(0,1500-(now()-lastCall)),options.signal);
+        await(deps.sleep??pause)(Math.max(0,JIRA_MCP_INTERVAL_MS-(now()-lastCall)),options.signal);
         lastCall=now();return jiraText(await client.call(name,args,options.signal));
       };
       const persist=async()=>{if(session&&accountChecked)await session.saveState(state,false);};

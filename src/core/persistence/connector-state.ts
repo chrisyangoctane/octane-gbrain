@@ -23,7 +23,8 @@ export type ConnectorAccount =
   | { kind: 'google'; email: string }
   | { kind: 'github'; installationId: number | null; login: string | null }
   | { kind: 'slack'; workspace: string }
-  | { kind: 'jira'; site: string };
+  | { kind: 'jira'; site: string }
+  | { kind: 'google-mcp'; connection:string;account:string };
 
 export interface ConnectorPendingEntry {
   /** The page slug, or `__managed_connector_checkpoint__` for a checkpoint save. */
@@ -170,7 +171,7 @@ export async function seedConnectorDispatchAttempts(engine: Pick<BrainEngine, 'e
     // parseSourceConfig, as the dispatch loops read it (string-wrapped configs included). The syncEnabled test is
     // isSyncDisabledConfig's (sync-policy.ts), inlined so the schema-migration closure stays small.
     const config = parseSourceConfig(row.config);
-    if (config.kind !== 'google' && config.kind !== 'github' && config.kind !== 'slack' && config.kind!=='jira') continue;
+    if (config.kind !== 'google' && config.kind !== 'github' && config.kind !== 'slack' && config.kind!=='jira' && config.kind!=='google-mcp') continue;
     if (config.syncEnabled === false) continue;
     await recordConnectorSyncAttempt(engine, row.id, at);
     seeded++;
@@ -193,6 +194,7 @@ export async function attemptedConnectorSourceIds(engine: Pick<BrainEngine, 'exe
 /** Account pins compare the resolved identity only; the recorded display never includes credentials. */
 export function sameConnectorAccount(a: ConnectorAccount, b: ConnectorAccount): boolean {
   if (a.kind !== b.kind) return false;
+  if(a.kind==='google-mcp')return a.connection===(b as typeof a).connection&&a.account===(b as typeof a).account;
   if(a.kind==='jira')return a.site===(b as typeof a).site;
   if (a.kind === 'slack') return a.workspace === (b as typeof a).workspace;
   if (a.kind === 'google') return a.email === (b as typeof a).email;
@@ -201,6 +203,7 @@ export function sameConnectorAccount(a: ConnectorAccount, b: ConnectorAccount): 
 }
 
 export function describeConnectorAccount(account: ConnectorAccount): string {
+  if(account.kind==='google-mcp')return `Google MCP declared mailbox ${account.account}`;
   if(account.kind==='jira')return `Jira site ${account.site}`;
   if (account.kind === 'slack') return `Slack workspace ${account.workspace}`;
   if (account.kind === 'google') return account.email;

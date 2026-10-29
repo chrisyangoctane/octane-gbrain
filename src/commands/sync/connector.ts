@@ -19,7 +19,7 @@ export async function runConnectorSync(engine: BrainEngine, opts: SyncOpts, mana
     return null;
   }
   const config = typeof source.config === 'string' ? JSON.parse(source.config) : source.config ?? {};
-  if (config.kind !== 'google' && config.kind !== 'github' && config.kind !== 'slack' && config.kind !== 'jira') {
+  if (config.kind !== 'google' && config.kind !== 'github' && config.kind !== 'slack' && config.kind !== 'jira' && config.kind!=='google-mcp') {
     if (opts.githubItem) throw new Error(`github_item refresh requires a github-kind source, but "${sourceId}" is not github-kind.`);
     return null;
   }
@@ -31,7 +31,11 @@ export async function runConnectorSync(engine: BrainEngine, opts: SyncOpts, mana
   const fallbackDir = source.local_path ?? (managed ? '' : (await import('../../core/sources-ops.ts')).defaultCloneDir(`${sourceId}-${config.kind}`));
   serr(`[gbrain phase] sync.${config.kind}_materialize`);
   let result: SyncResult;
-  if(config.kind==='jira'){
+  if(config.kind==='google-mcp'){
+    const {runGoogleMcpSync}=await import('../../core/google-mcp/sync.ts');
+    const {parseGoogleMcpSourceConfig}=await import('../../core/google-mcp/source-config.ts');
+    result=await runGoogleMcpSync(engine,sourceId,parseGoogleMcpSourceConfig(config,fallbackDir),options);
+  } else if(config.kind==='jira'){
     const {runJiraSync}=await import('../../core/jira/sync.ts');
     const {parseJiraSourceConfig}=await import('../../core/jira/source-config.ts');
     result=await runJiraSync(engine,sourceId,parseJiraSourceConfig(config,fallbackDir),options);

@@ -734,6 +734,69 @@ selection are retained, not deleted automatically. Attachments and Jira change
 history are not downloaded. Comment access is limited by the MCP credential's
 permissions. Embedding sends imported text to your configured model provider.
 
+### Gmail through the Separate Google MCP Connector
+
+`--kind google-mcp` is independent of gbrain's built-in `--kind google`.
+It supports explicitly selected Gmail messages and bounded Calendar event
+summaries, not Drive, attachments or Gmail-derived open-loop detection.
+
+Authenticate your existing Google MCP connection through
+<https://tools.ai-dev.octane.co/portal/servers>, then supply its connection
+reference in a private JSON/JSONC file. Both `mcpServers` and `mcp` layouts are
+accepted; no particular AI client or configuration path is assumed.
+
+```json
+{"mcpServers":{"google":{"url":"https://mcp.example.com/google","headers":{"Authorization":"Bearer {env:GOOGLE_MCP_TOKEN}"}}}}
+```
+
+The token reference is for your existing MCP connection, not a new Google API
+credential. Use the connection details from the portal. A separate client's
+private OAuth token store is not read by gbrain.
+
+```bash
+gbrain sources add mail --kind google-mcp \
+  --account owner@example.com \
+  --gmail-query 'after:2026/01/01 before:2026/02/01' \
+  --mcp-config /path/to/mcp-connections.json --mcp-server google
+gbrain sync --source mail --no-embed
+gbrain search 'a phrase from an email' --source mail
+gbrain extract --stale --catch-up --source-id mail --brain host
+gbrain embed --stale --catch-up --source mail
+```
+
+The query selects messages, not whole threads: unrelated messages in the same
+thread are not automatically imported. Each result has a stable
+`gmail-mcp/<message-id>` page with returned headers, text body and thread ID.
+Search pagination is exhausted, and managed sources checkpoint message position
+and failed IDs for retry. Completed selections are re-read on subsequent runs;
+messages that disappear from the query are retained rather than deleted.
+
+To include Calendar, pass `--calendar-id <id> --time-min <RFC3339> --time-max
+<RFC3339>` at registration. These may be combined with `--gmail-query`, or used
+alone for a calendar-only source. `primary` explicitly selects the connected
+account's primary calendar; shared calendars are never included automatically.
+Both time bounds are required and fixed in the source configuration.
+Calendar pages exhaust pagination and retain event titles, time information,
+locations, IDs and links returned by the MCP. They record
+`coverage: event-summaries`: descriptions and attendees are not exposed by the
+current MCP tool and are not imported. The source window is re-read on later
+syncs, not automatically advanced; disappeared pages are not deleted.
+
+The current MCP limits each body to 10,000 characters. Such pages explicitly
+record `body_truncated: true`, and sync reports partial coverage rather than
+claiming a full email archive. HTML-only messages retain the server's HTML body.
+No attachment binary is downloaded.
+
+The MCP currently has no authenticated mailbox profile tool. `--account` is a
+declared mailbox label, not a verified provider identity; pages record
+`identity_verified: false`. Endpoint/account configuration is pinned, but a token
+silently switched to another Google account at the same endpoint cannot be
+detected reliably. Keep separate MCP connections for separate mailboxes.
+
+Calls are read-only, sequential and paced. Credentials remain in the supplied
+connection file/environment, and failures never print message bodies or auth
+headers. Embedding sends imported text to your configured embedding provider.
+
 ## Further reading
 
 ### Slack via MCP
