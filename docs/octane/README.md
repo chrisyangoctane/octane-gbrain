@@ -11,6 +11,7 @@ deployment. They are separate from the upstream gbrain documentation in
 | [connectors/slack-mcp.md](connectors/slack-mcp.md) | Slack channel history and thread replies |
 | [connectors/jira-mcp.md](connectors/jira-mcp.md) | Jira issues and comments selected by JQL |
 | [connectors/google-mcp.md](connectors/google-mcp.md) | Gmail messages and Calendar event summaries |
+| [connectors/confluence-mcp.md](connectors/confluence-mcp.md) | Confluence pages from one space |
 
 Upstream setup for the gbrain CLI, GitHub and embeddings remains in
 [docs/setup/setup.md](../../setup/setup.md).

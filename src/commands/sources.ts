@@ -144,7 +144,7 @@ async function countPages(engine: BrainEngine, sourceId: string): Promise<number
 // ── Subcommand: add ─────────────────────────────────────────
 
 async function runAdd(engine: BrainEngine, args: string[]): Promise<void> {
-  if(['slack','jira','google-mcp'].includes(args[args.indexOf('--kind')+1]??'') && args.includes('--kind')) {
+  if(['slack','jira','google-mcp','confluence'].includes(args[args.indexOf('--kind')+1]??'') && args.includes('--kind')) {
     const {parseSourceLifecycleArgs}=await import('./sources-lifecycle-args.ts');
     const parsed=parseSourceLifecycleArgs(['add',...args]);
     const created=await opsAddSource(engine,parsed.params.options as import('../core/sources-ops.ts').AddSourceOpts);
@@ -161,6 +161,7 @@ async function runAdd(engine: BrainEngine, args: string[]): Promise<void> {
         '[--app-id <n> --app-pem <path>] [--app-install <n>]\n' +
         '       slack kind: --channels <ids-or-urls> --mcp-config <client-config> [--mcp-server <name>]\n' +
         '       jira kind: --jql <selection> [--project <key>] --mcp-config <client-config> [--mcp-server <name>]\n' +
+        '       confluence kind: --space <KEY> [--query <text>] --mcp-config <client-config> [--mcp-server <name>]\n' +
         '       google-mcp kind: --account <email> [--gmail-query <selection>] [--calendar-id <id> --time-min <RFC3339> --time-max <RFC3339>] --mcp-config <client-config> [--mcp-server <name>]\n' +
         '       google kind: --account <email> [--services gmail,calendar,contacts] ' +
         '[--history-days <n>] [--future-days <n>] [--loops-exclude-labels <a,b>] [--contacts-dir <dir>] [--calendar-id <id>] [--dir <path>]   (connect first: gbrain google connect)\n' +
