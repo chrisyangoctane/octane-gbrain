@@ -1,8 +1,5 @@
 /** Read-only MCP transport. Credentials stay in the operator's existing client config. */
-import { readFileSync } from 'node:fs';
-import { parse, type ParseError } from 'jsonc-parser';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import {readMcpSourceConfig,connectMcpSource} from '../mcp-source.ts';
 import type { SlackSourceConfig } from './source-config.ts';
 
 export interface SlackMcpResult { content?: Array<{type:string;text?:string}>; structuredContent?: Record<string,unknown>; isError?:boolean }
@@ -17,39 +14,19 @@ export interface StructuredSlackMessage { ts?:string; thread_ts?:string; is_thre
 export interface StructuredSlackPage { messages:StructuredSlackMessage[]; next_cursor?:string; has_more:boolean }
 
 export function readSlackMcpConfig(cfg:Pick<SlackSourceConfig,'mcpConfig'|'mcpServer'>):{url:URL;headers:Record<string,string>} {
-  try {
-    const errors:ParseError[]=[];
-    const root=parse(readFileSync(cfg.mcpConfig,'utf8'),errors);
-    const server=root?.mcpServers?.[cfg.mcpServer]??root?.mcp?.[cfg.mcpServer];
-    if(errors.length||!server||server.enabled===false||server.command||
-      server.type!==undefined&&!['remote','http','streamable-http'].includes(server.type))throw new Error();
-    const url=new URL(server.url);
-    if(url.username||url.password||url.search||url.hash||!(url.protocol==='https:'||url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)))throw new Error();
-    const headers:Record<string,string>={};
-    for(const [name,value] of Object.entries(server.headers??{})) {
-      if(typeof value!=='string')throw new Error();
-      headers[name]=value.replace(/\{env:([A-Z_][A-Z0-9_]*)\}/g,(_,key)=>{const v=process.env[key];if(!v)throw new Error();return v;});
-    }
-    return {url,headers};
-  } catch {throw new Error('Slack MCP configuration is unavailable or invalid. Configure an enabled remote server in the selected client config.');}
+  return readMcpSourceConfig(cfg);
 }
 
 export async function connectSlackMcp(cfg:SlackSourceConfig):Promise<SlackMcpConnection> {
-  const {url,headers}=readSlackMcpConfig(cfg);
-  const client=new Client({name:'gbrain-slack-ingest',version:'1'});
-  try {
-    await client.connect(new StreamableHTTPClientTransport(url,{requestInit:{headers,redirect:'error'}}),{timeout:30000});
-    const tools=await client.listTools();
-    if(!tools.tools.some(t=>t.name==='slack-conversations-history'))throw new Error();
-  } catch {await client.close().catch(()=>{});throw new Error('Cannot connect to Slack MCP. Check its authentication in your MCP client.');}
+  const client=await connectMcpSource(cfg,['slack-conversations-history','slack-conversations-replies']);
   return {
-    identity:url.toString()+'#'+cfg.mcpServer,
+    identity:client.identity,
     async history(args,signal){
-      try {return await client.callTool({name:'slack-conversations-history',arguments:args},undefined,{signal,timeout:60000}) as SlackMcpResult;}
+      try {return await client.call('slack-conversations-history',args,signal);}
       catch {throw new Error('Slack MCP history request failed; retry this source after checking the MCP server.');}
     },
     async replies(args,signal){
-      try {return await client.callTool({name:'slack-conversations-replies',arguments:args},undefined,{signal,timeout:60000}) as SlackMcpResult;}
+      try {return await client.call('slack-conversations-replies',args,signal);}
       catch {throw new Error('Slack MCP replies request failed; retry this source after checking the MCP server.');}
     },
     close:()=>client.close(),

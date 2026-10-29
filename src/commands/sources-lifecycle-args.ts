@@ -1,5 +1,6 @@
 /** Parse trusted source administration before connecting to the selected datastore. */
 import { randomUUID } from 'node:crypto';
+import {parseJiraSourceConfig} from '../core/jira/source-config.ts';
 import { parseSlackSourceConfig } from '../core/slack/source-config.ts';
 import { resolve } from 'node:path';
 import { opError } from '../core/ops/contract.ts';
@@ -42,7 +43,7 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
     'federated', 'no-federated', 'no-federate', 'refederate', 'no-harden']);
   const valued = new Set(['request-id', 'expected-incarnation', 'brain', 'path', 'url', 'name', 'clone-dir',
     'pat-file', 'kind', 'account', 'access', 'token-command', 'token-env', 'services', 'history-days',
-    'future-days', 'loops-exclude-labels', 'contacts-dir', 'calendar-id', 'scope', 'repos', 'dir', 'app-id', 'app-pem', 'app-install', 'channels', 'mcp-config', 'mcp-server']);
+    'future-days', 'loops-exclude-labels', 'contacts-dir', 'calendar-id', 'scope', 'repos', 'dir', 'app-id', 'app-pem', 'app-install', 'channels', 'mcp-config', 'mcp-server','jql','project']);
   for (let i = 0; i < rest.length; i++) {
     const token = rest[i];
     if (!token.startsWith('-')) { positionals.push(token); continue; }
@@ -103,17 +104,19 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
 
   if (flags.has('federated') && flags.has('no-federated')) throw invalid('Choose one federation setting.', 'Pass either --federated or --no-federated, not both.');
   const kind = values.get('kind');
-  if (kind !== undefined && !['google', 'github', 'slack'].includes(kind)) throw invalid('Source kind must be github, google or slack.',
+  if (kind !== undefined && !['google', 'github', 'slack','jira'].includes(kind)) throw invalid('Source kind must be github, google, slack or jira.',
     'Pass --kind github or --kind google; a directory or Git remote source uses --path or --url instead of --kind.');
   if ([values.has('path'), values.has('url'), kind !== undefined].filter(Boolean).length > 1) throw invalid('--path, --url and --kind are mutually exclusive.',
     'Give exactly one of --path (a local directory), --url (an https Git remote) or --kind (github or google).');
   const googleOnly = ['account', 'access', 'token-command', 'services', 'history-days', 'future-days', 'loops-exclude-labels', 'contacts-dir', 'calendar-id'];
   const githubOnly = ['scope', 'repos', 'app-id', 'app-pem', 'app-install'];
   const kindOptions = [...googleOnly, ...githubOnly, 'dir', 'token-env'];
-  for (const key of ['channels', 'mcp-config', 'mcp-server']) {
+  for (const key of ['channels']) {
     if(values.has(key) && kind !== 'slack') throw invalid(`--${key} requires --kind slack.`, 'Use --kind slack or remove the Slack-specific flag.');
   }
   if (kind === 'slack' && !values.has('mcp-config')) throw invalid('--kind slack requires --mcp-config <path>.', 'Point --mcp-config at the MCP client configuration that defines your Slack server, for example: --mcp-config ./mcp.json --mcp-server slack.');
+  for(const key of ['mcp-config','mcp-server'])if(values.has(key)&&!['slack','jira'].includes(kind??''))throw invalid(`--${key} requires an MCP connector kind.`, 'Use --kind jira or --kind slack.');
+  for(const key of ['jql','project'])if(values.has(key)&&kind!=='jira')throw invalid(`--${key} requires --kind jira.`, 'Use --kind jira.');
   for (const key of kindOptions) if (values.has(key) && !kind) throw invalid(`--${key} requires --kind github or google.`,
     `Add ${googleOnly.includes(key) ? '--kind google' : githubOnly.includes(key) ? '--kind github' : '--kind github or --kind google'} for --${key}, or remove --${key}.`);
   for (const key of googleOnly) {
@@ -136,6 +139,7 @@ export function parseSourceLifecycleArgs(args: string[], generatedId = randomUUI
   if (kind === 'slack') {
     opts.slack = parseSlackSourceConfig({slack_channels:values.get('channels'),slack_mcp_config:values.get('mcp-config'),slack_mcp_server:values.get('mcp-server'),slack_dir:values.has('dir')?absolute(values.get('dir')!):undefined}, defaultCloneDir(`${id}-slack`));
   }
+  if(kind==='jira')opts.jira=parseJiraSourceConfig({jira_jql:values.get('jql'),jira_project:values.get('project'),jira_mcp_config:values.get('mcp-config'),jira_mcp_server:values.get('mcp-server'),jira_dir:values.has('dir')?absolute(values.get('dir')!):undefined},defaultCloneDir(`${id}-jira`));
   if (kind === 'github') {
     const scope = values.get('scope') ?? 'auto';
     const repos = (values.get('repos') ?? '').split(',').map(value => value.trim()).filter(Boolean);

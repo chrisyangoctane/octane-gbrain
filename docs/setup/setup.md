@@ -682,6 +682,58 @@ token is the value to paste. Restarting the server replaces it.
 | Tool shows `gbrain` as failed | The server is not running, the token is not in the tool's launch environment, or an old stdio `gbrain serve` entry is still present. Fix each in that order. |
 | `think` answers "no information" but search finds pages | The question's wording misses the page text. Search by a distinctive term, and check that `CHAT`/`EXPANSION` model variables are set in the server's `.env`. |
 
+### Jira via MCP
+
+Jira and Confluence are separate sources. This connector ingests Jira only.
+First configure and authenticate your existing Jira MCP connection through
+<https://tools.ai-dev.octane.co/portal/servers>. No new provider login or
+particular AI client is required by gbrain.
+
+Supply a JSON/JSONC connection file with the existing server URL and configured
+headers. Named entries under `mcpServers` or `mcp` are accepted:
+
+```json
+{"mcpServers":{"jira":{"url":"https://mcp.example.com/jira","headers":{"Authorization":"Bearer {env:JIRA_MCP_TOKEN}"}}}}
+```
+
+This is an example connection reference, not a request to create a Jira API
+token. Use the MCP connection details supplied by the portal. Keep this file
+outside the repository with restrictive permissions. Only the file path and
+server name are stored in the source; header values are read at runtime.
+
+```bash
+gbrain sources add tickets --kind jira \
+  --jql 'project = EX ORDER BY key ASC' \
+  --mcp-config /path/to/mcp-connections.json --mcp-server jira
+gbrain sync --source tickets --no-embed
+gbrain search 'a phrase from an issue' --source tickets
+gbrain extract --stale --catch-up --source-id tickets --brain host
+gbrain embed --stale --catch-up --source tickets
+```
+
+Choose a deliberate JQL scope before the first import. `--project EX` optionally
+adds a project boundary to the supplied query; the JQL remains required.
+The server must expose `jira-search`, `jira-read-issue` and `jira-read-comments`.
+The connection uses Streamable HTTP with configured headers, not a separate
+client's private OAuth token store.
+
+Each issue has one stable `jira/<issue-key>.md` page containing its description,
+status/assignee metadata returned by the MCP, source URL, and all comment pages.
+Jira search follows the opaque `nextPageToken`; comments use the server's page
+numbers. An issue is replaced only after both detail and comments are complete.
+The current MCP exposes text rather than structured data; an unexpected format,
+unknown comments total or missing continuation token fails instead of guessing
+that the import is complete.
+
+Managed sources checkpoint the search page and issue position. Failed issues
+are logged by key and retried on the next run; the sync result is partial while
+any issue remains failed. Calls are sequential and spaced at least 1.5 seconds
+apart; errors are not immediately retried. Completed selections are fully
+re-read on subsequent runs to observe edits. Issues that disappear from the JQL
+selection are retained, not deleted automatically. Attachments and Jira change
+history are not downloaded. Comment access is limited by the MCP credential's
+permissions. Embedding sends imported text to your configured model provider.
+
 ## Further reading
 
 ### Slack via MCP

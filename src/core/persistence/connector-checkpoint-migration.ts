@@ -41,7 +41,7 @@ export interface LoadableConnectorKey { id: string; incarnation: string; archive
  * under them are never orphans while the source exists.
  */
 export async function loadableConnectorKeys(engine: Pick<BrainEngine, 'executeRaw'>): Promise<Map<string, LoadableConnectorKey>> {
-  const rows = await engine.executeRaw<SourceRow>("SELECT id,incarnation::text,local_path,config,archived FROM sources WHERE config->>'kind' IN ('google','github','slack')");
+  const rows = await engine.executeRaw<SourceRow>("SELECT id,incarnation::text,local_path,config,archived FROM sources WHERE config->>'kind' IN ('google','github','slack','jira')");
   const keys = new Map<string, LoadableConnectorKey>();
   for (const row of rows) {
     const config = typeof row.config === 'string' ? JSON.parse(row.config) as Record<string, unknown> : row.config ?? {};
