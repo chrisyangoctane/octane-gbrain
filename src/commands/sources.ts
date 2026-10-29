@@ -144,6 +144,13 @@ async function countPages(engine: BrainEngine, sourceId: string): Promise<number
 // ── Subcommand: add ─────────────────────────────────────────
 
 async function runAdd(engine: BrainEngine, args: string[]): Promise<void> {
+  if(args.includes('slack') && args.includes('--kind')) {
+    const {parseSourceLifecycleArgs}=await import('./sources-lifecycle-args.ts');
+    const parsed=parseSourceLifecycleArgs(['add',...args]);
+    const created=await opsAddSource(engine,parsed.params.options as import('../core/sources-ops.ts').AddSourceOpts);
+    console.log(`Added source ${created.id}`);
+    return;
+  }
   const id = args[0];
   if (!id) {
     console.error(
@@ -152,6 +159,7 @@ async function runAdd(engine: BrainEngine, args: string[]): Promise<void> {
         '       github kind: [--token-env <env>] [--scope auto|repos] ' +
         '[--repos owner/name,...] [--dir <path>] ' +
         '[--app-id <n> --app-pem <path>] [--app-install <n>]\n' +
+        '       slack kind: --channels <ids-or-urls> [--mcp-config <client-config>] [--mcp-server <name>]\n' +
         '       google kind: --account <email> [--services gmail,calendar,contacts] ' +
         '[--history-days <n>] [--future-days <n>] [--loops-exclude-labels <a,b>] [--contacts-dir <dir>] [--calendar-id <id>] [--dir <path>]   (connect first: gbrain google connect)\n' +
         '                    [--access vault|command|env] [--token-command "<cmd>"] [--token-env <VAR>]   (non-vault Google access: gog/gcloud/gateway)',

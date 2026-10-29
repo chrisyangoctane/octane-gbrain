@@ -159,6 +159,11 @@ export function printSyncResult(result: SyncResult, sink: NodeJS.WriteStream = p
         break;
       }
       if (result.reason === 'connector_partial') {
+        if(result.toCommit==='slack-mcp') {
+          write(`Sync PARTIAL [connector_partial]: Slack MCP history pagination completed; thread replies were not imported because exact parent timestamps are unavailable. ${result.added+result.modified} page(s) written.`);
+          write('  Retrying cannot restore missing MCP metadata. Existing legacy Slack pages remain intact.');
+          break;
+        }
         write(
           `Sync PARTIAL [connector_partial]: the connector stopped before finishing and reported no cause; ` +
           `${result.filesImported ?? result.added + result.modified} page(s) written.`,

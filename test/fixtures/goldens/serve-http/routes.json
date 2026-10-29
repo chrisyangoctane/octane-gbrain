@@ -208,6 +208,24 @@
         "requireAdmin",
         "<inline>"
       ],
+      "method": "get",
+      "path": "/admin/api/connections/slack",
+      "when": []
+    },
+    {
+      "handlers": [
+        "requireAdmin",
+        "<inline>"
+      ],
+      "method": "post",
+      "path": "/admin/api/connections/slack/check",
+      "when": []
+    },
+    {
+      "handlers": [
+        "requireAdmin",
+        "<inline>"
+      ],
       "method": "post",
       "path": "/admin/api/sign-out-everywhere",
       "when": []

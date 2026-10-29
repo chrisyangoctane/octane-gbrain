@@ -8,13 +8,14 @@ import { JobsWatchPage } from './pages/JobsWatch';
 import { OAuthConsentPage } from './pages/OAuthConsent';
 import { pendingOAuthRequest } from './lib/oauth-request';
 import { api } from './api';
+import {ConnectionsPage} from './pages/Connections';
 
-type Page = 'login' | 'dashboard' | 'agents' | 'log' | 'calibration' | 'jobs' | 'oauth-consent';
+type Page = 'login' | 'dashboard' | 'agents' | 'log' | 'calibration' | 'jobs' | 'oauth-consent' | 'connections';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '') || 'dashboard';
   if (pendingOAuthRequest() && hash === 'dashboard') return 'oauth-consent';
-  if (['login', 'dashboard', 'agents', 'log', 'calibration', 'jobs', 'oauth-consent'].includes(hash)) return hash as Page;
+  if (['login', 'dashboard', 'agents', 'log', 'calibration', 'jobs', 'oauth-consent','connections'].includes(hash)) return hash as Page;
   return 'dashboard';
 }
 
@@ -53,6 +54,7 @@ export function App() {
       <nav className="sidebar">
         <div className="sidebar-logo">GBrain</div>
         <div className="sidebar-nav">
+          <a className={`nav-item ${page==='connections'?'active':''}`} onClick={()=>navigate('connections')}>Connections</a>
           <a className={`nav-item ${page === 'dashboard' ? 'active' : ''}`}
              onClick={() => navigate('dashboard')}>Dashboard</a>
           <a className={`nav-item ${page === 'agents' ? 'active' : ''}`}
@@ -84,6 +86,7 @@ export function App() {
         </div>
       </nav>
       <main className="main">
+        {page==='connections'&&<ConnectionsPage/>}
         {page === 'dashboard' && <DashboardPage />}
         {page === 'agents' && <AgentsPage />}
         {page === 'log' && <RequestLogPage />}
