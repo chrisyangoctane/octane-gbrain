@@ -148,6 +148,7 @@ export interface SourceStatus {
 }
 
 export interface AddSourceOpts {
+  jira?: import('./jira/source-config.ts').JiraSourceConfig;
   slack?: import('./slack/source-config.ts').SlackSourceConfig;
   id: string;
   name?: string;
@@ -585,7 +586,7 @@ export async function addSource(
         e,
       );
     }
-  } else if (opts.slack) {
+  } else if (opts.slack || opts.jira) {
     const input=(await import('./persistence/managed-sources.ts')).managedSourceAddInput(opts);
     mkdirSync(input.path!,{recursive:true,mode:0o700});
     await engine.executeRaw(`INSERT INTO sources (id,name,local_path,config) VALUES ($1,$2,$3,$4::text::jsonb)`,[opts.id,opts.name??opts.id,input.path,JSON.stringify(input.config)]);

@@ -30,6 +30,9 @@ export function connectorAccountChanged(sourceId: string, kind: ConnectorKind, c
     restore = `restore ${where} so it yields a token for ${show(recorded)}, then retry: gbrain sync --source ${sourceId}`;
     replace = `add a new source for the new account (gbrain google setup --account ${typeof resolved === 'object' && resolved?.kind === 'google' ? resolved.email : '<email>'}), `
       + `then archive this one: gbrain sources archive ${sourceId}`;
+  } else if (kind === 'jira') {
+    restore = `restore the MCP connection for ${show(recorded)}, then retry gbrain sync --source ${sourceId}`;
+    replace = 'register a new --kind jira source for the intended site';
   } else if (kind === 'slack') {
     restore = `restore the MCP endpoint configured for ${show(recorded)}, then retry gbrain sync --source ${sourceId}`;
     replace = `register a new --kind slack source with the intended --mcp-config and --mcp-server`;

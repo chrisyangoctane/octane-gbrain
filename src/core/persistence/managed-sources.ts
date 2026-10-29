@@ -21,7 +21,7 @@ export function assertTopologyCommitted(result:Record<string,unknown>):void{
 export function managedSourceAddInput(opts:AddSourceOpts):SourceLifecycleInput{
   if(!isValidSourceId(opts.id))throw new OperationError('invalid_params','A valid explicit source ID is required.',
     'Pass a source id of 1-32 lowercase letters, digits and inner hyphens (for example "notes" or "acme-wiki").');
-  if([opts.remoteUrl,opts.localPath,opts.github,opts.google,opts.slack].filter(Boolean).length>1)
+  if([opts.remoteUrl,opts.localPath,opts.github,opts.google,opts.slack,opts.jira].filter(Boolean).length>1)
     throw new OperationError('invalid_params','Choose exactly one source location: path, remote URL, GitHub, or Google.',
       `Add source ${opts.id} with exactly one of a local path, a Git remote URL, a GitHub connector or a Google connector.`);
   if(opts.cloneDir&&!opts.remoteUrl)throw new OperationError('invalid_params','cloneDir requires a remote URL.',
@@ -50,8 +50,13 @@ export function managedSourceAddInput(opts:AddSourceOpts):SourceLifecycleInput{
     config={kind:'slack',slack_channels:opts.slack.channels.join(','),slack_dir:path,
       slack_mcp_config:opts.slack.mcpConfig,slack_mcp_server:opts.slack.mcpServer,federated:opts.federated??true};
   }
+  if(opts.jira){
+    path=resolve(opts.jira.dir);
+    config={kind:'jira',jira_dir:path,jira_jql:opts.jira.jql,jira_project:opts.jira.project,
+      jira_mcp_config:opts.jira.mcpConfig,jira_mcp_server:opts.jira.mcpServer,federated:opts.federated??true};
+  }
   return {operation:'add',sourceId:opts.id,path,name:opts.name,config,remoteUrl:opts.remoteUrl,
-    createDirectory:!!(opts.github||opts.google||opts.slack),requireGitContent:!!(path&&!opts.remoteUrl&&!opts.github&&!opts.google&&!opts.slack&&!opts.force),requestId:opts.requestId,expectedIncarnation:opts.expectedIncarnation};
+    createDirectory:!!(opts.github||opts.google||opts.slack||opts.jira),requireGitContent:!!(path&&!opts.remoteUrl&&!opts.github&&!opts.google&&!opts.slack&&!opts.jira&&!opts.force),requestId:opts.requestId,expectedIncarnation:opts.expectedIncarnation};
 }
 export async function addManagedSource(engine:BrainEngine,opts:AddSourceOpts):Promise<SourceRow>{
   const result=await runManagedSourceLifecycle(engine,managedSourceAddInput(opts));

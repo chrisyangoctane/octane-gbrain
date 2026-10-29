@@ -21,18 +21,19 @@
  * by the upgrade migration and never orphaned.
  */
 import { digest } from './digest.ts';
+import {parseJiraSourceConfig,type JiraSourceConfig} from '../jira/source-config.ts';
 import { parseSlackSourceConfig, type SlackSourceConfig } from '../slack/source-config.ts';
 import { parseGoogleSourceConfig } from '../google/source-config.ts';
 import { parseGitHubSourceConfig } from '../github-source-config.ts';
 import type { GitHubSourceConfig } from '../github-source.ts';
 import { DEFAULT_CONTACTS_DIR, type GoogleSourceConfig } from '../google/types.ts';
 
-export type ConnectorKind = 'google' | 'github' | 'slack';
+export type ConnectorKind = 'google' | 'github' | 'slack' | 'jira';
 
-export const CONNECTOR_SOURCE_KINDS: readonly ConnectorKind[] = ['google', 'github', 'slack'];
+export const CONNECTOR_SOURCE_KINDS: readonly ConnectorKind[] = ['google', 'github', 'slack', 'jira'];
 /** A managed Google or GitHub connector source (`sources.config.kind`). */
 export function isConnectorSourceKind(kind: unknown): kind is ConnectorKind { return CONNECTOR_SOURCE_KINDS.includes(kind as ConnectorKind); }
-export type ConnectorConfig = GoogleSourceConfig | GitHubSourceConfig | SlackSourceConfig;
+export type ConnectorConfig = GoogleSourceConfig | GitHubSourceConfig | SlackSourceConfig | JiraSourceConfig;
 type LeafClass = 'identity' | 'excluded';
 /** An identity leaf left out of the digest while it holds the default it was introduced with (#6561). */
 interface ElidedLeaf { elideWhen: unknown }
@@ -45,7 +46,8 @@ const underAuto = (config: GitHubSourceConfig): LeafClass => config.scope === 'a
  * output and fails on a leaf missing here; an unlisted leaf still joins the
  * identity at runtime, never the exclusion list.
  */
-export const CONNECTOR_LEAF_RULES: { google: Record<string, LeafClass | ElidedLeaf>; github: Record<string, Rule>; slack: Record<string, Rule> } = {
+export const CONNECTOR_LEAF_RULES: { google: Record<string, LeafClass | ElidedLeaf>; github: Record<string, Rule>; slack: Record<string, Rule>;jira:Record<string,Rule> } = {
+  jira:{dir:'identity',jql:'identity',project:'identity',mcpConfig:'identity',mcpServer:'identity'},
   slack: {dir:'identity',channels:'identity',mcpConfig:'identity',mcpServer:'identity'},
   google: {
     account: 'identity', services: 'identity', historyDays: 'identity', futureDays: 'identity', calendarId: 'identity', dir: 'identity',
@@ -102,6 +104,7 @@ export function connectorIdentityLeaves(kind: ConnectorKind, config: ConnectorCo
 export interface ConnectorIdentity { kind: ConnectorKind; config: ConnectorConfig; digest: string; aliasDigests: string[] }
 
 export function parseConnectorConfig(kind: ConnectorKind, raw: Record<string, unknown>, localPath: string | null): ConnectorConfig {
+  if(kind==='jira')return parseJiraSourceConfig(raw,localPath??'');
   if(kind === 'slack') return parseSlackSourceConfig(raw, localPath ?? '');
   return kind === 'google' ? parseGoogleSourceConfig(raw, localPath ?? '') : parseGitHubSourceConfig(raw, localPath ?? '');
 }
